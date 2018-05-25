@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <!--<link rel="stylesheet" href="bootstrap.min.css">-->
+</head>
+
+<body style="margin-top: 20px">
+    <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <button class="btn btn-primary" onclick="join('a')">进入房间A</button>
+                <button class="btn btn-primary" onclick="leave('a')">退出房间A</button>
+                <button class="btn btn-success" onclick="join('b')">进入房间B</button>
+                <button class="btn btn-success" onclick="leave('b')">退出房间B</button>
+            </div>
+            <div class="panel-body">
+                <ul id="message" class="list-group">
+
+                </ul>
+            </div>
+            <div class="panel-footer">
+                <div class="row">
+                    <div class="col-xs-11">
+                        <input type="text" id="txtMsg" class="form-control" onkeyup="send(event)">
+                    </div>
+                    <div class="col-xs-1">
+                        <button class="btn btn-warning" onclick="talk()">发言</button>
+                    </div>
+                    <div id="currentRomms"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <input type="file" onchange="changeFile(this)">
+</body>
+<!--todo 访问服务器让服务器返回socket.io-->
+<script src="./socket.io.js"></script>
+<script>
+    //当引用socket.io脚本之后，会在window下增加一个io的属性
+    window.onload = function () {
+        var socket = io.connect('localhost:9090/');//访问服务器的路径
+        socket.on('connect', function () {
+            console.log('连接服务器成功')
+        });
+        //监听服务器发过来的消息
+        socket.on('message', function (msg) {
+            var message = document.querySelector('#message');
+            var li = document.createElement('li');
+            li.className = 'list-group-item';
+            li.innerHTML = msg;
+            message.appendChild(li)
+            console.log(msg)
+        })
+        window.talk = function talk() {
+            var content = document.querySelector('#txtMsg').value;
+            socket.send(content)
+        }
+        window.send = function (event) {
+            //which用来判断按下的是哪个键 同keycode一样
+            if (event.which == 13) {
+                talk()
+            }
+        }
+        //进入房间
+        window.join = function (room) {
+            //第一个参数是事件类型，第二个参数是传的参数
+            socket.emit('join', room);
+            var currentRooms = document.querySelector('#currentRomms')
+            var rooms = currentRooms.innerHTML;
+            var index = rooms.split(',').indexOf('root');
+            if (index == -1) {
+                currentRooms.innerHTML += '进入房间:' + room
+            }
+        }
+        //离开房间
+        window.leave = function (room) {
+            var currentRooms = document.querySelector('#currentRomms')
+            currentRooms.innerHTML += '离开房间:' + room
+            socket.emit('leave', room);
+        }
+        window.changeFile = function(_this) {
+            console.log(_this)
+            var file = _this.files[0];
+            var reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = function (evt) {
+                console.log(evt.target.result)
+                var buf = evt.target.result;
+                socket.send(buf)
+            }
+        }
+    }
+
+
+</script>
+<script>
+
+</script>
+
+</html>
